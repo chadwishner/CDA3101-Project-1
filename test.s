@@ -48,8 +48,10 @@ loop:
 	b loop
     
 break:
-    //print out length
+    //temporarily store the length in the stack so that the printf doesn't mess with it
     stp x30, x10, [sp, #-16]!
+
+    //print out length
     LDR x0, =lengthformat
 	MOV x1, x10
 	bl printf
@@ -57,122 +59,124 @@ break:
     //flush it
     LDR x0, =flush
     bl printf
+
+    //load the length back and into x0 so we can reverse the string
     ldp x30, x0, [sp], #16
 
-//added all of the shit below from reverse    
-    //ldr x0, =lengthformat
-    //mov x0, #256 //not sure if we are allowed to do 256
-    mov x20, #0 //added this for checking if it is a palin
+    //create an index variable that start from the beginning of the input string
+    mov x20, #0
 
+    //subtract 1 from the length to have the proper index
     sub x0, x0, #1 
     ldr x1, =strbuffer
+    
+    //create an index variable that start from the beginning of the reverse string
     mov x2, #0
 
+    //call the reverse function
     bl reverse
 
+    //if we get back here, then the input is a palindrome so get ready to print 'Y'
     bl ispalin
-    //ldr x0, =flush
-    // bl printf
-    
-    //b exit
 
 reverse:    
-    #In reverse we want to maintain
-    #x0 is length-1
-    #x1 is memory location where string is
-    #x2 is index
+    //x0 is length-1
+    //x1 is memory location where the input string is
+    //x2 is the reverse string's index
 
+    //if the current index is less the the end index, we must go deeper in the recurrsive call  
     subs x3, x2, x0
 
-    #If we haven't reached the last index, recurse
+    //If we haven't reached the last index, recurse
     b.lt recurse
 
-base:       
-    #We've reached the end of the string. Print!
-    //ldr x0, =outformat
-        
-    #We need to keep x1 around because that's the string address!
-    #Also bl will overwrite return address, so store that too
+base:               
+    //store the string (x1) in the stack so that we don't loose it
     stp x30, x1, [sp, #-16]!
-    ldrb w1, [x1, x2]
-    //bl printf
+    
+    //Load the correct character of x1 at x2 into w1 for comparison
+    ldrb w1, [x1, x2]   //we may not need this
+
+    //load the length back and into x1 so we can reverse the string
     ldp x30, x1, [sp], #16
 
-   //added this v
-    //check if equal to corresponding character
-    ldrb w5, [x1, x2] //x2 is index
-    //ldr x1, =strbuffer
-    //sub x4, lengthformat, x2 //where the fuck is length
-    ldrb w12, [x1, x20] //2 is index
+    //Load the correct character of x1 at x2 into w5 for comparison
+    ldrb w5, [x1, x2] 
+ 
+    //Load the correct character of x1 at x2 into w12 for comparison
+    ldrb w12, [x1, x20]
 
+    //compare w5 and w12 which are the characters of the reversed and input length respectively
     CMP w5, w12
+    //if the characters are not equal, then we need to break out and print 'N'
     b.ne notpalin
+    //else we need to increment x20 (the input string's index)
     add x20, x20, #1
-    //added this ^
 
-
-    #Go back and start executing at the return
-    #address that we stored 
+    //Go back and start executing at the return
+    //address that we stored 
     br x30
 
 recurse:    
-    #First we store the frame pointer(x29) and 
-    #link register(x30)
+    //First we store the frame pointer(x29) and link register(x30)
     sub sp, sp, #16
     str x29, [sp, #0]
     str x30, [sp, #8]
 
-    #Move our frame pointer
+    //Move our frame pointer
     add x29, sp, #8
 
-    #Make room for the index on the stack
+    //Make room for the index on the stack
     sub sp, sp, #16
 
-    #Store it with respect to the frame pointer
+    //Store it with respect to the frame pointer
     str x2, [x29, #-16]
 
     add x2, x2, #1 
 
-    #Branch and link to original function. 
+    //Branch and link to original function. 
     bl reverse
 
-    #Back from other recursion, so load in our index
 end_rec:    
     ldr x2, [x29, #-16]
 
-    #Print the char!
+    //store the string (x1) in the stack so that we don't loose it
     stp x30, x1, [sp, #-16]!
-    //ldr x0, =outformat
-    ldrb w1, [x1, x2] //2 is index
-    //bl printf
+    
+    //load the correct character of x1 at x2 into w1 for comparison
+    ldrb w1, [x1, x2] //we may not need this
+    
+    //load the length back and into x1 so we can reverse the string
     ldp x30, x1, [sp], #16
 
-    //added this v
-    //check if equal to corresponding character
-    ldrb w5, [x1, x2] //x2 is index
-    //ldr x1, =strbuffer
-    //sub x4, lengthformat, x2 //where the fuck is length
-    ldrb w12, [x1, x20] //2 is index
+    //Load the correct character of x1 at x2 into w5 for comparison
+    ldrb w5, [x1, x2]
+    
+    //Load the correct character of x1 at x2 into w12 for comparison
+    ldrb w12, [x1, x20]
 
+    //compare w5 and w12 which are the characters of the reversed and input length respectively
     CMP w5, w12
+    //if the characters are not equal, then we need to break out and print 'N'
     b.ne notpalin
+    //else we need to increment x20 (the input string's index)
     add x20, x20, #1
-    //added this ^
 
-    #Clear off stack space used to hold index
+    //Clear off stack space used to hold index
     add sp, sp, #16
 
-    #Load in fp and lr
+    //Load in fp and lr
     ldr x29, [sp, #0]
     ldr x30, [sp, #8]
             
-    #Clear off the stack space used to hold fp and lr
+    //Clear off the stack space used to hold fp and lr
     add sp, sp, #16
 
-    #Return to correct location in execution
+    //Return to correct location in execution
     br x30
 
 notpalin:
+    //print 'N' if it is not a palindrome
     LDR x0, =stringread
 	LDR x1, =nope
 	bl printf
@@ -183,6 +187,7 @@ notpalin:
     b exit
 
 ispalin:
+    //print 'Y' if it is a palindrome
     LDR x0, =stringread
 	LDR x1, =yup
 	bl printf
