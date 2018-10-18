@@ -92,7 +92,7 @@ end_rec:    ldr x2, [x29, #-16]
             #Print the char!
             stp x30, x1, [sp, #-16]!
             ldr x0, =outformat
-            ldrb w1, [x1, x2]
+                        ldrb w1, [x1, x2]
             bl printf
             ldp x30, x1, [sp], #16
 
