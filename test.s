@@ -2,6 +2,10 @@
 
 	prompt:
 		.asciz "input a string: "
+    nope:
+        .asciz "N"
+    yup:
+        .asciz "Y"
 	stringread:
 		.asciz "%s" 
 	strbuffer: 
@@ -33,13 +37,19 @@ main:
     MOV x10, #0
 
 loop:
+    //save input string into x11
     LDR x11, =strbuffer
-    LDRB w11, [x11, x10] //change x0 to x1 or x3??
-	CBZ w11, break 
-	ADD x10, x10, #1
+    //get character at x10 in x11 and store it in w11
+    LDRB w11, [x11, x10]
+	//if w11 is zero, we have reached the end of the string and break
+    CBZ w11, break 
+	//else increment x10
+    ADD x10, x10, #1
 	b loop
     
 break:
+    //print out length
+    stp x30, x10, [sp, #-16]!
     LDR x0, =lengthformat
 	MOV x1, x10
 	bl printf
@@ -47,11 +57,12 @@ break:
     //flush it
     LDR x0, =flush
     bl printf
+    ldp x30, x0, [sp], #16
 
-//added all of the shit below
-//from reverse    
+//added all of the shit below from reverse    
     //ldr x0, =lengthformat
-    mov x0, #256
+    //mov x0, #256 //not sure if we are allowed to do 256
+    mov x20, #0 //added this for checking if it is a palin
 
     sub x0, x0, #1 
     ldr x1, =strbuffer
@@ -59,10 +70,11 @@ break:
 
     bl reverse
 
-    ldr x0, =flush
-    bl printf
+    bl ispalin
+    //ldr x0, =flush
+    // bl printf
     
-    b exit
+    //b exit
 
 reverse:    
     #In reverse we want to maintain
@@ -77,14 +89,27 @@ reverse:
 
 base:       
     #We've reached the end of the string. Print!
-    ldr x0, =outformat
+    //ldr x0, =outformat
         
     #We need to keep x1 around because that's the string address!
     #Also bl will overwrite return address, so store that too
     stp x30, x1, [sp, #-16]!
     ldrb w1, [x1, x2]
-    bl printf
+    //bl printf
     ldp x30, x1, [sp], #16
+
+   //added this v
+    //check if equal to corresponding character
+    ldrb w5, [x1, x2] //x2 is index
+    //ldr x1, =strbuffer
+    //sub x4, lengthformat, x2 //where the fuck is length
+    ldrb w12, [x1, x20] //2 is index
+
+    CMP w5, w12
+    b.ne notpalin
+    add x20, x20, #1
+    //added this ^
+
 
     #Go back and start executing at the return
     #address that we stored 
@@ -117,10 +142,22 @@ end_rec:
 
     #Print the char!
     stp x30, x1, [sp, #-16]!
-    ldr x0, =outformat
-    ldrb w1, [x1, x2]
-    bl printf
+    //ldr x0, =outformat
+    ldrb w1, [x1, x2] //2 is index
+    //bl printf
     ldp x30, x1, [sp], #16
+
+    //added this v
+    //check if equal to corresponding character
+    ldrb w5, [x1, x2] //x2 is index
+    //ldr x1, =strbuffer
+    //sub x4, lengthformat, x2 //where the fuck is length
+    ldrb w12, [x1, x20] //2 is index
+
+    CMP w5, w12
+    b.ne notpalin
+    add x20, x20, #1
+    //added this ^
 
     #Clear off stack space used to hold index
     add sp, sp, #16
@@ -134,6 +171,26 @@ end_rec:
 
     #Return to correct location in execution
     br x30
+
+notpalin:
+    LDR x0, =stringread
+	LDR x1, =nope
+	bl printf
+
+    //flush it
+    LDR x0, =flush
+    bl printf
+    b exit
+
+ispalin:
+    LDR x0, =stringread
+	LDR x1, =yup
+	bl printf
+
+    //flush it
+    LDR x0, =flush
+    bl printf
+    b exit
 
 exit:
     mov x0, #0
